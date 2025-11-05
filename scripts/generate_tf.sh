@@ -37,7 +37,5 @@ resource "confluent_kafka_topic" "topic" {
   rest_endpoint = "https://api.confluent.cloud"
 }
 
-variable "confluent_api_key" {}
-variable "confluent_api_secret" {}
 variable "kafka_cluster" {}
 EOF
