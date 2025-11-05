@@ -70,7 +70,6 @@ jobs:
               "cleanup.policy" = "delete"
             }
             rest_endpoint = "https://api.confluent.cloud"
-            description = "$DESCRIPTION"
           }
 
           variable "confluent_api_key" {}
