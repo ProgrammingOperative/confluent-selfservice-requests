@@ -1,0 +1,6 @@
+{
+  "resource_type": "topic",
+  "topic_name": "newer",
+  "partitions": "6",
+  "description": ""
+}
