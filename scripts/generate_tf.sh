@@ -23,7 +23,9 @@ terraform {
   }
 }
 
-provider "confluent" {}
+provider "confluent" {
+  kafka_rest_endpoint = "https://api.confluent.cloud"
+}
 
 resource "confluent_kafka_topic" "topic" {
   kafka_cluster {
