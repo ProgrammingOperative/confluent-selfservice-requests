@@ -1,24 +1,90 @@
 version: 0.2
 
+env:
+  variables:
+    TF_VERSION: "1.7.5"
+  secrets-manager:
+    CONFLUENT_CREDS: "confluent/credentials:creds" # Example secret key (adjust to your secret name/key)
+
 phases:
   install:
     commands:
-      - echo "Installing Terraform..."
-      - curl -o terraform.zip https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
+      - echo "Installing Terraform v${TF_VERSION}..."
+      - curl -o terraform.zip https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
       - unzip terraform.zip -d /usr/local/bin/
       - terraform -version
+      - yum install -y jq
 
-  build:
+  pre_build:
     commands:
-      - echo "Running Terraform apply in $(pwd)"
+      - echo "Preparing environment..."
       - echo "Extracting Confluent credentials from Secrets Manager JSON"
       - export CONFLUENT_API_KEY=$(echo $CONFLUENT_CREDS | jq -r '.api_key')
       - export CONFLUENT_API_SECRET=$(echo $CONFLUENT_CREDS | jq -r '.api_secret')
+      - echo "Credentials loaded successfully."
+
+  build:
+    commands:
+      - echo "🔍 Searching for metadata.json..."
+      - METADATA_FILE=$(find requests -name metadata.json | head -n 1)
+      - if [ -z "$METADATA_FILE" ]; then echo "❌ No metadata.json found. Exiting."; exit 1; fi
+      - echo "Found metadata: $METADATA_FILE"
+
+      - echo "🧩 Parsing metadata..."
+      - TOPIC_NAME=$(jq -r '.topic_name' $METADATA_FILE)
+      - PARTITIONS=$(jq -r '.partitions' $METADATA_FILE)
+      - DESCRIPTION=$(jq -r '.description' $METADATA_FILE)
+      - ENVIRONMENT=$(jq -r '.environment' $METADATA_FILE)
+      - echo "Topic: $TOPIC_NAME | Partitions: $PARTITIONS | Environment: $ENVIRONMENT"
+
+      - echo "📁 Generating temporary Terraform configuration..."
+      - mkdir -p tf
+
+      - cat > tf/main.tf <<EOF
+      terraform {
+        required_providers {
+          confluent = {
+            source  = "confluentinc/confluent"
+            version = "2.5.0"
+          }
+        }
+      }
+
+      provider "confluent" {
+        cloud_api_key    = var.confluent_api_key
+        cloud_api_secret = var.confluent_api_secret
+      }
+
+      variable "confluent_api_key" {}
+      variable "confluent_api_secret" {}
+      variable "kafka_cluster" {}
+
+      resource "confluent_kafka_topic" "topic" {
+        kafka_cluster {
+          id = var.kafka_cluster
+        }
+        topic_name       = "${TOPIC_NAME}"
+        partitions_count = ${PARTITIONS}
+        config = {
+          "cleanup.policy" = "delete"
+        }
+        rest_endpoint = "https://api.confluent.cloud"
+      }
+      EOF
+
+      - echo "✅ Terraform configuration generated successfully."
+
+      - cd tf
+      - echo "🏗️ Initializing Terraform..."
       - terraform init -input=false
+
+      - echo "🚀 Applying Terraform changes..."
       - terraform apply -auto-approve -input=false \
           -var="confluent_api_key=$CONFLUENT_API_KEY" \
-          -var="confluent_api_secret=$CONFLUENT_API_SECRET"
+          -var="confluent_api_secret=$CONFLUENT_API_SECRET" \
+          -var="kafka_cluster=$KAFKA_CLUSTER"
 
 artifacts:
   files:
+    - tf/plan.txt
     - "**/*"
