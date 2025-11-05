@@ -23,14 +23,12 @@ provider "confluent" {
   kafka_api_key        = var.confluent_api_key
   kafka_api_secret     = var.confluent_api_secret
   kafka_rest_endpoint  = var.confluent_rest_endpoint
+  environment_id       = var.confluent_env
 }
 
 resource "confluent_kafka_topic" "topic" {
   kafka_cluster {
     id = var.kafka_cluster
-    environment {
-      id = var.confluent_env
-    }
   }
   topic_name       = "$TOPIC_NAME"
   partitions_count = $PARTITIONS
