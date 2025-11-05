@@ -4,7 +4,7 @@ env:
   variables:
     TF_VERSION: "1.7.5"
   secrets-manager:
-    CONFLUENT_CREDS: "confluent/credentials:creds" # Example secret key (adjust to your secret name/key)
+    CONFLUENT_CREDS: "confluent/credentials:creds" # adjust to your secret name/key
 
 phases:
   install:
@@ -27,7 +27,11 @@ phases:
     commands:
       - echo "🔍 Searching for metadata.json..."
       - METADATA_FILE=$(find requests -name metadata.json | head -n 1)
-      - if [ -z "$METADATA_FILE" ]; then echo "❌ No metadata.json found. Exiting."; exit 1; fi
+      - |
+        if [ -z "$METADATA_FILE" ]; then 
+          echo "❌ No metadata.json found. Exiting."
+          exit 1
+        fi
       - echo "Found metadata: $METADATA_FILE"
 
       - echo "🧩 Parsing metadata..."
@@ -39,39 +43,38 @@ phases:
 
       - echo "📁 Generating temporary Terraform configuration..."
       - mkdir -p tf
-
-      - cat > tf/main.tf <<EOF
-      terraform {
-        required_providers {
-          confluent = {
-            source  = "confluentinc/confluent"
-            version = "2.5.0"
+      - |
+        cat <<'EOF' > tf/main.tf
+        terraform {
+          required_providers {
+            confluent = {
+              source  = "confluentinc/confluent"
+              version = "2.5.0"
+            }
           }
         }
-      }
 
-      provider "confluent" {
-        cloud_api_key    = var.confluent_api_key
-        cloud_api_secret = var.confluent_api_secret
-      }
-
-      variable "confluent_api_key" {}
-      variable "confluent_api_secret" {}
-      variable "kafka_cluster" {}
-
-      resource "confluent_kafka_topic" "topic" {
-        kafka_cluster {
-          id = var.kafka_cluster
+        provider "confluent" {
+          cloud_api_key    = var.confluent_api_key
+          cloud_api_secret = var.confluent_api_secret
         }
-        topic_name       = "${TOPIC_NAME}"
-        partitions_count = ${PARTITIONS}
-        config = {
-          "cleanup.policy" = "delete"
-        }
-        rest_endpoint = "https://api.confluent.cloud"
-      }
-      EOF
 
+        variable "confluent_api_key" {}
+        variable "confluent_api_secret" {}
+        variable "kafka_cluster" {}
+
+        resource "confluent_kafka_topic" "topic" {
+          kafka_cluster {
+            id = var.kafka_cluster
+          }
+          topic_name       = "${TOPIC_NAME}"
+          partitions_count = ${PARTITIONS}
+          config = {
+            "cleanup.policy" = "delete"
+          }
+          rest_endpoint = "https://api.confluent.cloud"
+        }
+        EOF
       - echo "✅ Terraform configuration generated successfully."
 
       - cd tf
@@ -86,5 +89,5 @@ phases:
 
 artifacts:
   files:
-    - tf/plan.txt
+    - tf/**
     - "**/*"
