@@ -1,0 +1,6 @@
+{
+  "resource_type": "topic",
+  "topic_name": "TestWithWorkflow",
+  "partitions": "3",
+  "description": "New topic"
+}
