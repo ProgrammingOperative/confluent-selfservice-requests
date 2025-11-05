@@ -1,0 +1,6 @@
+{
+  "resource_type": "topic",
+  "topic_name": "Alpha1",
+  "partitions": "6",
+  "description": ""
+}
