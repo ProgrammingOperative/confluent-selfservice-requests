@@ -24,7 +24,6 @@ terraform {
 }
 
 provider "confluent" {
-  kafka_rest_endpoint = "https://api.confluent.cloud"
 }
 
 resource "confluent_kafka_topic" "topic" {
@@ -36,7 +35,7 @@ resource "confluent_kafka_topic" "topic" {
   config = {
     "cleanup.policy" = "delete"
   }
-  rest_endpoint = "https://api.confluent.cloud"
+  rest_endpoint = "https://pkc-921jm.us-east-2.aws.confluent.cloud:443"
 }
 
 variable "kafka_cluster" {}
