@@ -18,6 +18,8 @@ phases:
       - ./scripts/generate_tf.sh
       - cd tf
       - terraform init -input=false
-      - terraform apply -auto-approve -input=false \
+      - |
+        terraform apply -auto-approve -input=false \
           -var="confluent_api_key=$CONFLUENT_API_KEY" \
           -var="confluent_api_secret=$CONFLUENT_API_SECRET"
+
