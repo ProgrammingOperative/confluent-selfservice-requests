@@ -1,0 +1,6 @@
+{
+  "resource_type": "topic",
+  "topic_name": "BetaTopic2",
+  "partitions": "4",
+  "description": ""
+}
