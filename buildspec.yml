@@ -8,31 +8,31 @@ phases:
       - unzip terraform.zip -d /usr/local/bin/
       - terraform -version
 
-build:
-    commands:
-      - echo "Extracting Confluent credentials from Secrets Manager JSON"
-      - export CONFLUENT_API_KEY=$(echo "$CONFLUENT_CREDS" | jq -r '.api_key')
-      - export CONFLUENT_API_SECRET=$(echo "$CONFLUENT_CREDS" | jq -r '.api_secret')
-      - export KAFKA_CLUSTER=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_cluster')
-      - export CONFLUENT_ENV=$(echo "$CONFLUENT_CREDS" | jq -r '.confluent_env')
-      - export CONFLUENT_REST_ENDPOINT=$(echo "$CONFLUENT_CREDS" | jq -r '.rest_endpoint')
+  build:
+      commands:
+        - echo "Extracting Confluent credentials from Secrets Manager JSON"
+        - export CONFLUENT_API_KEY=$(echo "$CONFLUENT_CREDS" | jq -r '.api_key')
+        - export CONFLUENT_API_SECRET=$(echo "$CONFLUENT_CREDS" | jq -r '.api_secret')
+        - export KAFKA_CLUSTER=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_cluster')
+        - export CONFLUENT_ENV=$(echo "$CONFLUENT_CREDS" | jq -r '.confluent_env')
+        - export CONFLUENT_REST_ENDPOINT=$(echo "$CONFLUENT_CREDS" | jq -r '.rest_endpoint')
 
-      - echo "Generating Terraform files dynamically"
-      - chmod +x scripts/generate_tf.sh
-      - ./scripts/generate_tf.sh
+        - echo "Generating Terraform files dynamically"
+        - chmod +x scripts/generate_tf.sh
+        - ./scripts/generate_tf.sh
 
-      - cd tf
-      - terraform init -input=false
+        - cd tf
+        - terraform init -input=false
 
-      - |
-        echo "Applying Terraform..."
-        terraform apply -auto-approve -input=false \
-          -var="confluent_api_key=$CONFLUENT_API_KEY" \
-          -var="confluent_api_secret=$CONFLUENT_API_SECRET" \
-          -var="kafka_cluster=$KAFKA_CLUSTER" \
-          -var="confluent_env=$CONFLUENT_ENV" \
-          -var="confluent_rest_endpoint=$CONFLUENT_REST_ENDPOINT"
-          
+        - |
+          echo "Applying Terraform..."
+          terraform apply -auto-approve -input=false \
+            -var="confluent_api_key=$CONFLUENT_API_KEY" \
+            -var="confluent_api_secret=$CONFLUENT_API_SECRET" \
+            -var="kafka_cluster=$KAFKA_CLUSTER" \
+            -var="confluent_env=$CONFLUENT_ENV" \
+            -var="confluent_rest_endpoint=$CONFLUENT_REST_ENDPOINT"
+
 artifacts:
   files:
     - '**/*'
