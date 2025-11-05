@@ -22,7 +22,7 @@ phases:
       - |
         terraform apply -auto-approve -input=false \
           -var="confluent_api_key=$CONFLUENT_API_KEY" \
-          -var="confluent_api_secret=$CONFLUENT_API_SECRET"
+          -var="confluent_api_secret=$CONFLUENT_API_SECRET" \
           -var="kafka_cluster=$KAFKA_CLUSTER"
 
 
