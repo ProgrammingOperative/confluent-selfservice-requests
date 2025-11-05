@@ -13,6 +13,7 @@ phases:
       - echo "Extracting Confluent credentials from Secrets Manager JSON"
       - export CONFLUENT_API_KEY=$(echo $CONFLUENT_CREDS | jq -r '.api_key')
       - export CONFLUENT_API_SECRET=$(echo $CONFLUENT_CREDS | jq -r '.api_secret')
+      - export KAFKA_CLUSTER=$(echo $CONFLUENT_CREDS | jq -r '.kafka_cluster')
       - echo "Generating Terraform files dynamically"
       - chmod +x scripts/generate_tf.sh
       - ./scripts/generate_tf.sh
