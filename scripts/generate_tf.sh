@@ -26,7 +26,6 @@ terraform {
 provider "confluent" {
   kafka_api_key    = var.confluent_api_key
   kafka_api_secret = var.confluent_api_secret
-  environment = var.confluent_env
 }
 
 resource "confluent_kafka_topic" "topic" {
