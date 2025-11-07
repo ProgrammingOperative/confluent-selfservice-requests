@@ -11,11 +11,11 @@ phases:
   build:
       commands:
         - echo "Extracting Confluent credentials from Secrets Manager JSON"
-        - export CONFLUENT_API_KEY=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_api_key')
-        - export CONFLUENT_API_SECRET=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_api_secret')
-        - export KAFKA_CLUSTER=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_id')
-        - export CONFLUENT_ENV=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_env')
-        - export CONFLUENT_REST_ENDPOINT=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_rest_endpoint')
+        - export CONFLUENT_API_KEY=$(echo "$CONFLUENT_CREDENTIALS" | jq -r '.kafka_api_key')
+        - export CONFLUENT_API_SECRET=$(echo "$CONFLUENT_CREDENTIALS" | jq -r '.kafka_api_secret')
+        - export KAFKA_CLUSTER=$(echo "$CONFLUENT_CREDENTIALS" | jq -r '.kafka_id')
+        - export CONFLUENT_ENV=$(echo "$CONFLUENT_CREDENTIALS" | jq -r '.kafka_env')
+        - export CONFLUENT_REST_ENDPOINT=$(echo "$CONFLUENT_CREDENTIALS" | jq -r '.kafka_rest_endpoint')
 
         - echo "Generating Terraform files dynamically"
         - chmod +x scripts/generate_tf.sh
