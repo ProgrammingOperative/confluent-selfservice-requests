@@ -11,11 +11,11 @@ phases:
   build:
       commands:
         - echo "Extracting Confluent credentials from Secrets Manager JSON"
-        - export CONFLUENT_API_KEY=$(echo "$CONFLUENT_CREDS" | jq -r '.api_key')
-        - export CONFLUENT_API_SECRET=$(echo "$CONFLUENT_CREDS" | jq -r '.api_secret')
-        - export KAFKA_CLUSTER=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_cluster')
-        - export CONFLUENT_ENV=$(echo "$CONFLUENT_CREDS" | jq -r '.confluent_env')
-        - export CONFLUENT_REST_ENDPOINT=$(echo "$CONFLUENT_CREDS" | jq -r '.rest_endpoint')
+        - export CONFLUENT_API_KEY=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_api_key')
+        - export CONFLUENT_API_SECRET=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_api_secret')
+        - export KAFKA_CLUSTER=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_id')
+        - export CONFLUENT_ENV=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_env')
+        - export CONFLUENT_REST_ENDPOINT=$(echo "$CONFLUENT_CREDS" | jq -r '.kafka_rest_endpoint')
 
         - echo "Generating Terraform files dynamically"
         - chmod +x scripts/generate_tf.sh
@@ -27,11 +27,10 @@ phases:
         - |
           echo "Applying Terraform..."
           terraform apply -auto-approve -input=false \
-            -var="confluent_api_key=$CONFLUENT_API_KEY" \
-            -var="confluent_api_secret=$CONFLUENT_API_SECRET" \
-            -var="kafka_cluster=$KAFKA_CLUSTER" \
-            -var="confluent_env=$CONFLUENT_ENV" \
-            -var="confluent_rest_endpoint=$CONFLUENT_REST_ENDPOINT"
+            -var="kafka_api_key=$CONFLUENT_API_KEY" \
+            -var="kafka_api_secret=$CONFLUENT_API_SECRET" \
+            -var="kafka_id=$KAFKA_CLUSTER" \
+            -var="kafka_rest_endpoint=$CONFLUENT_REST_ENDPOINT"
 
 artifacts:
   files:

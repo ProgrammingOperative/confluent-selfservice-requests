@@ -20,27 +20,22 @@ terraform {
 }
 
 provider "confluent" {
-  kafka_api_key        = var.confluent_api_key
-  kafka_api_secret     = var.confluent_api_secret
-  kafka_rest_endpoint  = var.confluent_rest_endpoint
-  environment_id       = var.confluent_env
+  kafka_id            = var.kafka_id                
+  kafka_rest_endpoint = var.kafka_rest_endpoint        
+  kafka_api_key       = var.kafka_api_key              
+  kafka_api_secret    = var.kafka_api_secret  
 }
 
 resource "confluent_kafka_topic" "topic" {
-  kafka_cluster {
-    id = var.kafka_cluster
-  }
   topic_name       = "$TOPIC_NAME"
   partitions_count = $PARTITIONS
   config = {
     "cleanup.policy" = "delete"
   }
-  rest_endpoint = var.confluent_rest_endpoint
 }
 
-variable "confluent_api_key" {}
-variable "confluent_api_secret" {}
-variable "kafka_cluster" {}
-variable "confluent_env" {}
-variable "confluent_rest_endpoint" {}
+variable "kafka_api_key" {}
+variable "kafka_api_secret" {}
+variable "kafka_id" {}
+variable "kafka_rest_endpoint" {}
 EOF
