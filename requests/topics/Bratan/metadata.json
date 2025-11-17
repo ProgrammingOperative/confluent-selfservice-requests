@@ -1,0 +1,6 @@
+{
+  "resource_type": "topic",
+  "topic_name": "Bratan",
+  "partitions": "4",
+  "description": ""
+}
