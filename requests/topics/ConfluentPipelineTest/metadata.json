@@ -1,0 +1,6 @@
+{
+  "resource_type": "topic",
+  "topic_name": "ConfluentPipelineTest",
+  "partitions": "6",
+  "description": "Just testing"
+}
