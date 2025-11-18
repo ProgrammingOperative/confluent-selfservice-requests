@@ -27,8 +27,8 @@ phases:
         - |
           echo "Applying Terraform..."
           terraform apply -auto-approve -input=false \
-            -var="kafka_api_key=$CONFLUENT_API_KEY" \
-            -var="kafka_api_secret=$CONFLUENT_API_SECRET" \
+            -var="confluent_api_key=$CONFLUENT_API_KEY" \
+            -var="confluent_api_secret=$CONFLUENT_API_SECRET" \
             -var="kafka_id=$KAFKA_CLUSTER" \
             -var="kafka_rest_endpoint=$CONFLUENT_REST_ENDPOINT"
 

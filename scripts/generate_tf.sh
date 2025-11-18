@@ -42,10 +42,11 @@ resource "confluent_kafka_topic" "topic" {
   }
   topic_name       = "$TOPIC_NAME"
   partitions_count = $PARTITIONS
-  rest_endpoint    = "https://api.confluent.cloud"
+  rest_endpoint    = var.rest_endpoint
 }
 
 variable "confluent_api_key" {}
 variable "confluent_api_secret" {}
 variable "kafka_cluster" {}
+variable "rest_endpoint" {}
 EOF
