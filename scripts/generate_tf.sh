@@ -2,10 +2,8 @@
 set -e
 
 echo "Fetching commit metadata..."
-COMMIT=$(jq -r '.build.sourceVersion' /codebuild/output/tmp/codebuild.json 2>/dev/null || echo "$CODEBUILD_RESOLVED_SOURCE_VERSION")
+METADATA_FILE=$(find requests -type f -name metadata.json -printf "%T@ %p\n" | sort -nr | head -n 1 | cut -d' ' -f2-)
 
-echo "Finding metadata.json modified in commit: $COMMIT"
-METADATA_FILE=$(git diff-tree --no-commit-id --name-only -r $COMMIT | grep "metadata.json" | head -n 1)
 
 if [[ -z "$METADATA_FILE" ]]; then
   echo "ERROR: No metadata.json found in commit. Aborting."
