@@ -32,17 +32,15 @@ terraform {
 }
 
 provider "confluent" {
+  kafka_id            = var.kafka_id                   #
+  kafka_rest_endpoint = var.kafka_rest_endpoint
   cloud_api_key    = var.confluent_api_key
   cloud_api_secret = var.confluent_api_secret
 }
 
 resource "confluent_kafka_topic" "topic" {
-  kafka_cluster {
-    id = var.kafka_id
-  }
   topic_name       = "$TOPIC_NAME"
   partitions_count = $PARTITIONS
-  rest_endpoint    = var.kafka_rest_endpoint
 }
 
 variable "confluent_api_key" {}
