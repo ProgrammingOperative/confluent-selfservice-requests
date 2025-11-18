@@ -1,0 +1,37 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Installing Terraform..."
+      - curl -o terraform.zip https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
+      - unzip terraform.zip -d /usr/local/bin/
+      - terraform -version
+
+  build:
+      commands:
+        - echo "Extracting Confluent credentials from Secrets Manager JSON"
+        - export CONFLUENT_API_KEY=$(echo "$CONFLUENT_CREDENTIALS" | jq -r '.kafka_api_key')
+        - export CONFLUENT_API_SECRET=$(echo "$CONFLUENT_CREDENTIALS" | jq -r '.kafka_api_secret')
+        - export KAFKA_CLUSTER=$(echo "$CONFLUENT_CREDENTIALS" | jq -r '.kafka_id')
+        - export CONFLUENT_ENV=$(echo "$CONFLUENT_CREDENTIALS" | jq -r '.kafka_env')
+        - export CONFLUENT_REST_ENDPOINT=$(echo "$CONFLUENT_CREDENTIALS" | jq -r '.kafka_rest_endpoint')
+
+        - echo "Generating Terraform files dynamically"
+        - chmod +x scripts/generate_tf.sh
+        - ./scripts/generate_tf.sh
+
+        - cd tf
+        - terraform init -input=false
+
+        - |
+          echo "Applying Terraform..."
+          terraform apply -auto-approve -input=false \
+            -var="kafka_api_key=$CONFLUENT_API_KEY" \
+            -var="kafka_api_secret=$CONFLUENT_API_SECRET" \
+            -var="kafka_id=$KAFKA_CLUSTER" \
+            -var="kafka_rest_endpoint=$CONFLUENT_REST_ENDPOINT"
+
+artifacts:
+  files:
+    - '**/*'

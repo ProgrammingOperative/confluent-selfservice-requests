@@ -1,0 +1,105 @@
+name: Terraform Plan (Confluent Cloud)
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'requests/**/metadata.json'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-plan:
+    name: Run Terraform Plan for Confluent Cloud
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.6
+
+      - name: Set up environment variables
+        env:
+          CONFLUENT_CLOUD_API_KEY: ${{ secrets.CONFLUENT_CLOUD_API_KEY }}
+          CONFLUENT_CLOUD_API_SECRET: ${{ secrets.CONFLUENT_CLOUD_API_SECRET }}
+          CONFLUENT_CLOUD_ENV: ${{ secrets.CONFLUENT_CLOUD_ENV }}
+          CONFLUENT_CLOUD_CLUSTER: ${{ secrets.CONFLUENT_CLOUD_CLUSTER }}
+        run: |
+          echo "Environment variables configured successfully."
+
+
+      - name: Find metadata file
+        id: find-meta
+        run: |
+          FILE=$(git diff --name-only origin/main | grep "metadata.json" | head -n 1)
+          echo "file=$FILE" >> $GITHUB_OUTPUT
+
+
+      - name: Generate temporary Terraform configuration
+        id: tfgen
+        run: |
+          mkdir -p tf
+          METADATA_FILE="${{ steps.find-meta.outputs.file }}"
+          echo "Processing metadata from: $METADATA_FILE"
+
+          TOPIC_NAME=$(jq -r '.topic_name' $METADATA_FILE)
+          PARTITIONS=$(jq -r '.partitions' $METADATA_FILE)
+          DESCRIPTION=$(jq -r '.description' $METADATA_FILE)
+
+          cat > tf/main.tf <<EOF
+          terraform {
+            required_providers {
+              confluent = {
+                source = "confluentinc/confluent"
+                version = "2.5.0"
+              }
+            }
+          }
+
+          provider "confluent" {
+            cloud_api_key    = var.confluent_api_key
+            cloud_api_secret = var.confluent_api_secret
+          }
+
+          resource "confluent_kafka_topic" "topic" {
+            kafka_cluster {
+              id = var.kafka_cluster
+            }
+            topic_name = "$TOPIC_NAME"
+            partitions_count = $PARTITIONS
+            config = {
+              "cleanup.policy" = "delete"
+            }
+            rest_endpoint = "https://api.confluent.cloud"
+          }
+
+          variable "confluent_api_key" {}
+          variable "confluent_api_secret" {}
+          variable "kafka_cluster" {}
+          EOF
+
+      - name: Initialize Terraform
+        working-directory: tf
+        run: terraform init -input=false
+
+      - name: Run Terraform Plan
+        id: plan
+        working-directory: tf
+        env:
+          TF_VAR_confluent_api_key: ${{ secrets.CONFLUENT_CLOUD_API_KEY }}
+          TF_VAR_confluent_api_secret: ${{ secrets.CONFLUENT_CLOUD_API_SECRET }}
+          TF_VAR_kafka_cluster: ${{ secrets.CONFLUENT_CLOUD_CLUSTER }}
+        run: terraform plan -no-color > plan.txt
+
+      - name: Post plan result as PR comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: terraform-plan
+          path: tf/plan.txt
