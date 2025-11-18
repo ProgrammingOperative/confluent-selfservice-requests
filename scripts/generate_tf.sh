@@ -47,6 +47,6 @@ resource "confluent_kafka_topic" "topic" {
 
 variable "confluent_api_key" {}
 variable "confluent_api_secret" {}
-variable "kafka_cluster" {}
-variable "rest_endpoint" {}
+variable "kafka_id" {}
+variable "kafka_rest_endpoint" {}
 EOF
