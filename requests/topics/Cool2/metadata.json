@@ -1,0 +1,6 @@
+{
+  "resource_type": "topic",
+  "topic_name": "Cool2",
+  "partitions": "5",
+  "description": ""
+}
