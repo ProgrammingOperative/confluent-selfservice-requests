@@ -1,0 +1,6 @@
+{
+  "resource_type": "topic",
+  "topic_name": "TitusBeta",
+  "partitions": "3",
+  "description": ""
+}
