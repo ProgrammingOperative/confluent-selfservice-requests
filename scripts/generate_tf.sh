@@ -38,11 +38,11 @@ provider "confluent" {
 
 resource "confluent_kafka_topic" "topic" {
   kafka_cluster {
-    id = var.kafka_cluster
+    id = var.kafka_id
   }
   topic_name       = "$TOPIC_NAME"
   partitions_count = $PARTITIONS
-  rest_endpoint    = var.rest_endpoint
+  rest_endpoint    = var.kafka_rest_endpoint
 }
 
 variable "confluent_api_key" {}
