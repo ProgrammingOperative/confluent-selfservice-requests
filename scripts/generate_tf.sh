@@ -1,56 +1,75 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-echo "=== Detecting changed request folder ==="
+echo "----------------------------------------"
+echo "Starting Terraform generation script"
+echo "----------------------------------------"
 
-# Detect the directory under "requests/" changed in this commit
-# Works for both PR builds and normal merges
-CHANGED_REQUEST_DIR=$(git diff --name-only HEAD~1 HEAD | grep "^requests/" | cut -d"/" -f1-2 | uniq)
+REQUESTS_DIR="requests"
 
-if [[ -z "$CHANGED_REQUEST_DIR" ]]; then
-  echo "ERROR: No request folder changed in this commit. Aborting."
+if [[ ! -d "$REQUESTS_DIR" ]]; then
+  echo "ERROR: requests/ directory does not exist."
   exit 1
 fi
 
-# Safety check: ensure only ONE folder was changed
-COUNT=$(echo "$CHANGED_REQUEST_DIR" | wc -l)
-if [[ "$COUNT" -gt 1 ]]; then
-  echo "ERROR: Multiple request folders changed:"
-  echo "$CHANGED_REQUEST_DIR"
-  echo "Please modify only ONE request folder per PR."
+###############################################
+# 1. Determine which metadata.json to use
+###############################################
+
+# Preferred: Use commit SHA from CodePipeline/CodeBuild
+if [[ -n "${CODEBUILD_RESOLVED_SOURCE_VERSION:-}" ]]; then
+  echo "🔎 Using commit SHA from CodeBuild: $CODEBUILD_RESOLVED_SOURCE_VERSION"
+
+  COMMIT_DIR=$(find "$REQUESTS_DIR" -type d -name "*$CODEBUILD_RESOLVED_SOURCE_VERSION*" | head -n 1 || true)
+
+  if [[ -n "$COMMIT_DIR" ]]; then
+    METADATA_FILE="$COMMIT_DIR/metadata.json"
+  fi
+fi
+
+# Fallback: Use newest PR folder
+if [[ -z "${METADATA_FILE:-}" || ! -f "$METADATA_FILE" ]]; then
+  echo "⚠️  WARNING: Could not match commit to folder. Using latest metadata.json instead..."
+
+  METADATA_FILE=$(find "$REQUESTS_DIR" -type f -name metadata.json -printf "%T@ %p\n" \
+    | sort -nr | head -n 1 | cut -d' ' -f2-)
+fi
+
+if [[ -z "$METADATA_FILE" || ! -f "$METADATA_FILE" ]]; then
+  echo "ERROR: No metadata.json found!"
   exit 1
 fi
 
-echo "Using request folder: $CHANGED_REQUEST_DIR"
+echo "📄 Using metadata file: $METADATA_FILE"
 
-METADATA_FILE="${CHANGED_REQUEST_DIR}/metadata.json"
+###############################################
+# 2. Extract JSON fields
+###############################################
 
-if [[ ! -f "$METADATA_FILE" ]]; then
-  echo "ERROR: metadata.json not found at $METADATA_FILE"
-  exit 1
-fi
-
-echo "=== Reading metadata from $METADATA_FILE ==="
-
-TOPIC_NAME=$(jq -r '.topic_name' "$METADATA_FILE")
-PARTITIONS=$(jq -r '.partitions' "$METADATA_FILE")
-DESCRIPTION=$(jq -r '.description' "$METADATA_FILE")
+TOPIC_NAME=$(jq -r '.topic_name // empty' "$METADATA_FILE")
+PARTITIONS=$(jq -r '.partitions // empty' "$METADATA_FILE")
+DESCRIPTION=$(jq -r '.description // empty' "$METADATA_FILE")
 
 if [[ -z "$TOPIC_NAME" || -z "$PARTITIONS" ]]; then
-  echo "ERROR: metadata.json missing required keys (topic_name, partitions)"
+  echo "ERROR: metadata.json missing required fields."
+  jq . "$METADATA_FILE"
   exit 1
 fi
 
-echo "Metadata OK:"
-echo "  Topic Name : $TOPIC_NAME"
-echo "  Partitions : $PARTITIONS"
-echo "  Description: ${DESCRIPTION:-<none>}"
+echo "🔧 Extracted values:"
+echo "   topic_name: $TOPIC_NAME"
+echo "   partitions: $PARTITIONS"
+echo "   description: ${DESCRIPTION:-<none>}"
 
-# Create clean TF folder
+###############################################
+# 3. Generate Terraform configuration
+###############################################
+
+echo "Cleaning old tf/ folder..."
 rm -rf tf
 mkdir tf
 
-echo "=== Generating Terraform file ==="
+echo "Writing tf/main.tf ..."
 
 cat > tf/main.tf <<EOF
 terraform {
@@ -76,10 +95,6 @@ resource "confluent_kafka_topic" "topic" {
   kafka_cluster {
     id = var.kafka_id
   }
-
-  config = {
-    "cleanup.policy" = "delete"
-  }
 }
 
 variable "confluent_api_key" {}
@@ -88,6 +103,5 @@ variable "kafka_id" {}
 variable "kafka_rest_endpoint" {}
 EOF
 
-echo "=== TF generation complete ==="
-echo "Generated: tf/main.tf"
-echo "=============================="
+echo "Terraform config generation complete!"
+echo "----------------------------------------"
