@@ -1,57 +1,56 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 echo "----------------------------------------"
 echo "🔧 Starting Terraform generation script"
 echo "----------------------------------------"
 
-BASE_DIR="requests/topics"
-
-# Commit SHA CodePipeline triggered from
-COMMIT_SHA="${CODEBUILD_RESOLVED_SOURCE_VERSION}"
-
+# CodePipeline → CodeBuild set this automatically
+COMMIT_SHA="${CODEBUILD_RESOLVED_SOURCE_VERSION:-unknown}"
 echo "📝 Pipeline triggered by commit: $COMMIT_SHA"
 
-# Get list of changed files in this commit
-CHANGED=$(git diff-tree --no-commit-id --name-only -r "$COMMIT_SHA")
+REQUESTS_DIR="requests/topics"
+TARGET_DIR=""
 
-echo "🔍 Files changed in commit:"
-echo "$CHANGED"
-
-# Find the folder that contains metadata.json
-TARGET_FOLDER=""
-for f in $CHANGED; do
-  if [[ "$f" == requests/topics/*/metadata.json ]]; then
-    TARGET_FOLDER=$(dirname "$f")
-    break
-  fi
-done
-
-if [[ -z "$TARGET_FOLDER" ]]; then
-  echo "❌ ERROR: No metadata.json changed in this commit!"
+if [[ ! -d "$REQUESTS_DIR" ]]; then
+  echo "❌ Directory '$REQUESTS_DIR' does not exist!"
   exit 1
 fi
 
-echo "✅ Using folder from commit: $TARGET_FOLDER"
+echo "🔍 Searching for matching folder with commit_sha..."
 
-METADATA_FILE="$TARGET_FOLDER/metadata.json"
+for FOLDER in "$REQUESTS_DIR"/*; do
+  [[ -d "$FOLDER" ]] || continue
 
-echo "📄 Reading metadata: $METADATA_FILE"
+  META="$FOLDER/metadata.json"
 
-TOPIC_NAME=$(jq -r '.topic_name' "$METADATA_FILE")
-PARTITIONS=$(jq -r '.partitions' "$METADATA_FILE")
-DESCRIPTION=$(jq -r '.description // "<none>"' "$METADATA_FILE")
+  if [[ -f "$META" ]]; then
+    META_SHA=$(jq -r '.commit_sha // empty' "$META")
 
-echo "✔ Extracted metadata:"
-echo "   topic_name: $TOPIC_NAME"
-echo "   partitions: $PARTITIONS"
-echo "   description: $DESCRIPTION"
+    if [[ "$META_SHA" == "$COMMIT_SHA" ]]; then
+      TARGET_DIR="$FOLDER"
+      break
+    fi
+  fi
+done
 
-# Prepare output
-rm -rf tf
+if [[ -z "$TARGET_DIR" ]]; then
+  echo "❌ No folder found whose metadata.json contains commit_sha: $COMMIT_SHA"
+  exit 1
+fi
+
+echo "✅ Found matching folder: $TARGET_DIR"
+
+# Parse metadata
+TOPIC_NAME=$(jq -r '.topic_name' "$TARGET_DIR/metadata.json")
+PARTITIONS=$(jq -r '.partitions' "$TARGET_DIR/metadata.json")
+DESCRIPTION=$(jq -r '.description' "$TARGET_DIR/metadata.json")
+
 mkdir -p tf
 
-cat <<EOF > tf/main.tf
+echo "📝 Generating Terraform file: tf/main.tf"
+
+cat > tf/main.tf <<EOF
 terraform {
   required_providers {
     confluent = {
@@ -62,20 +61,19 @@ terraform {
 }
 
 provider "confluent" {
-  kafka_id             = var.kafka_id
-  kafka_rest_endpoint  = var.kafka_rest_endpoint
-  cloud_api_key        = var.confluent_api_key
-  cloud_api_secret     = var.confluent_api_secret
+  kafka_id            = var.kafka_id
+  kafka_rest_endpoint = var.kafka_rest_endpoint
+  cloud_api_key       = var.confluent_api_key
+  cloud_api_secret    = var.confluent_api_secret
 }
-
-variable "kafka_id" {}
-variable "kafka_rest_endpoint" {}
-variable "confluent_api_key" {}
-variable "confluent_api_secret" {}
 
 resource "confluent_kafka_topic" "topic" {
   topic_name       = "${TOPIC_NAME}"
   partitions_count = ${PARTITIONS}
+
+  config = {
+    "description" = "${DESCRIPTION}"
+  }
 
   kafka_cluster {
     id = var.kafka_id
@@ -83,5 +81,5 @@ resource "confluent_kafka_topic" "topic" {
 }
 EOF
 
-echo "🎉 Terraform file generated successfully!"
+echo "🎉 Terraform config generation complete!"
 echo "----------------------------------------"
