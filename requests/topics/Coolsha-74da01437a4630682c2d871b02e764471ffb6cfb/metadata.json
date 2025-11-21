@@ -1,0 +1,7 @@
+{
+  "resource_type": "topic",
+  "topic_name": "Coolsha",
+  "partitions": 7,
+  "description": "",
+  "commit_sha": "6b6a2ed7e53503206d07c52803eb40de5df75409"
+}
