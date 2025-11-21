@@ -7,48 +7,51 @@ echo "----------------------------------------"
 
 BASE_DIR="requests/topics"
 
-echo "📂 Looking for latest PR folder in: $BASE_DIR"
+# Commit SHA CodePipeline triggered from
+COMMIT_SHA="${CODEBUILD_RESOLVED_SOURCE_VERSION}"
 
-# Find folders ending with "-<40charSHA>"
-LATEST_FOLDER=$(find "$BASE_DIR" -maxdepth 1 -type d \
-  -regex ".*/.*-[0-9a-f]\{40\}" \
-  -printf "%T@ %p\n" | sort -n | tail -1 | awk '{print $2}')
+echo "📝 Pipeline triggered by commit: $COMMIT_SHA"
 
-if [[ -z "$LATEST_FOLDER" ]]; then
-  echo "❌ ERROR: No valid PR metadata folders found!"
+# Get list of changed files in this commit
+CHANGED=$(git diff-tree --no-commit-id --name-only -r "$COMMIT_SHA")
+
+echo "🔍 Files changed in commit:"
+echo "$CHANGED"
+
+# Find the folder that contains metadata.json
+TARGET_FOLDER=""
+for f in $CHANGED; do
+  if [[ "$f" == requests/topics/*/metadata.json ]]; then
+    TARGET_FOLDER=$(dirname "$f")
+    break
+  fi
+done
+
+if [[ -z "$TARGET_FOLDER" ]]; then
+  echo "❌ ERROR: No metadata.json changed in this commit!"
   exit 1
 fi
 
-echo "✅ Latest PR folder detected: $LATEST_FOLDER"
+echo "✅ Using folder from commit: $TARGET_FOLDER"
 
-METADATA_FILE="$LATEST_FOLDER/metadata.json"
+METADATA_FILE="$TARGET_FOLDER/metadata.json"
 
-if [[ ! -f "$METADATA_FILE" ]]; then
-  echo "❌ ERROR: metadata.json not found in $LATEST_FOLDER"
-  exit 1
-fi
-
-echo "📄 Using metadata file: $METADATA_FILE"
-echo "Extracting JSON fields..."
+echo "📄 Reading metadata: $METADATA_FILE"
 
 TOPIC_NAME=$(jq -r '.topic_name' "$METADATA_FILE")
 PARTITIONS=$(jq -r '.partitions' "$METADATA_FILE")
 DESCRIPTION=$(jq -r '.description // "<none>"' "$METADATA_FILE")
 
-echo "✔ Extracted values"
+echo "✔ Extracted metadata:"
 echo "   topic_name: $TOPIC_NAME"
 echo "   partitions: $PARTITIONS"
 echo "   description: $DESCRIPTION"
 
-# Prepare TF folder
-echo "🧹 Cleaning old tf/ folder..."
+# Prepare output
 rm -rf tf
 mkdir -p tf
 
-TF_FILE="tf/main.tf"
-echo "📝 Writing Terraform config to tf/main.tf ..."
-
-cat <<EOF > "$TF_FILE"
+cat <<EOF > tf/main.tf
 terraform {
   required_providers {
     confluent = {
@@ -80,17 +83,5 @@ resource "confluent_kafka_topic" "topic" {
 }
 EOF
 
-echo "🎉 Terraform config generation complete!"
+echo "🎉 Terraform file generated successfully!"
 echo "----------------------------------------"
-
-cd tf
-
-echo "🚀 Running terraform init"
-terraform init -input=false
-
-echo "🚀 Applying Terraform..."
-terraform apply -auto-approve -input=false \
-  -var="confluent_api_key=$CONFLUENT_API_KEY" \
-  -var="confluent_api_secret=$CONFLUENT_API_SECRET" \
-  -var="kafka_id=$KAFKA_CLUSTER" \
-  -var="kafka_rest_endpoint=$CONFLUENT_REST_ENDPOINT"
