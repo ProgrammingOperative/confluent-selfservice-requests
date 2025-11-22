@@ -2,5 +2,6 @@
   "resource_type": "topic",
   "topic_name": "NewTopic7",
   "partitions": 7,
-  "description": ""
+  "description": "",
+  "pr_number": 78
 }
