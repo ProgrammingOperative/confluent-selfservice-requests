@@ -9,12 +9,6 @@ phases:
       - terraform -version
 
 
-  pre_build:
-    commands:
-      - echo "Dumping all env variables"
-      - printenv
-
-
   build:
       commands:
         - echo "Extracting Confluent credentials from Secrets Manager JSON"
