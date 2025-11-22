@@ -5,46 +5,33 @@ echo "----------------------------------------"
 echo "🔧 Starting Terraform generation script"
 echo "----------------------------------------"
 
-# CodePipeline → CodeBuild set this automatically
-COMMIT_SHA="${CODEBUILD_RESOLVED_SOURCE_VERSION:-unknown}"
-echo "📝 Pipeline triggered by commit: $COMMIT_SHA"
-
 REQUESTS_DIR="requests/topics"
-TARGET_DIR=""
 
 if [[ ! -d "$REQUESTS_DIR" ]]; then
   echo "❌ Directory '$REQUESTS_DIR' does not exist!"
   exit 1
 fi
 
-echo "🔍 Searching for matching folder with commit_sha..."
+echo "🔍 Locating most recently updated metadata.json..."
 
-for FOLDER in "$REQUESTS_DIR"/*; do
-  [[ -d "$FOLDER" ]] || continue
+# Find newest metadata.json file in the topics directory
+LATEST_META=$(find "$REQUESTS_DIR" -type f -name "metadata.json" -printf "%T@ %p\n" \
+    | sort -nr \
+    | head -n 1 \
+    | awk '{print $2}')
 
-  META="$FOLDER/metadata.json"
-
-  if [[ -f "$META" ]]; then
-    META_SHA=$(jq -r '.commit_sha // empty' "$META")
-
-    if [[ "$META_SHA" == "$COMMIT_SHA" ]]; then
-      TARGET_DIR="$FOLDER"
-      break
-    fi
-  fi
-done
-
-if [[ -z "$TARGET_DIR" ]]; then
-  echo "❌ No folder found whose metadata.json contains commit_sha: $COMMIT_SHA"
+if [[ -z "$LATEST_META" ]]; then
+  echo "❌ No metadata.json found!"
   exit 1
 fi
 
-echo "✅ Found matching folder: $TARGET_DIR"
+TARGET_DIR=$(dirname "$LATEST_META")
+echo "✅ Using newest request folder: $TARGET_DIR"
 
-# Parse metadata
-TOPIC_NAME=$(jq -r '.topic_name' "$TARGET_DIR/metadata.json")
-PARTITIONS=$(jq -r '.partitions' "$TARGET_DIR/metadata.json")
-DESCRIPTION=$(jq -r '.description' "$TARGET_DIR/metadata.json")
+# Extract values using jq
+TOPIC_NAME=$(jq -r '.topic_name' "$LATEST_META")
+PARTITIONS=$(jq -r '.partitions' "$LATEST_META")
+DESCRIPTION=$(jq -r '.description' "$LATEST_META")
 
 mkdir -p tf
 
