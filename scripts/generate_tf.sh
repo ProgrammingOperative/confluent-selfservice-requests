@@ -50,8 +50,8 @@ terraform {
 provider "confluent" {
   kafka_id            = var.kafka_id
   kafka_rest_endpoint = var.kafka_rest_endpoint
-  cloud_api_key       = var.confluent_api_key
-  cloud_api_secret    = var.confluent_api_secret
+  kafka_api_key       = var.confluent_api_key
+  kafka_api_secret    = var.confluent_api_secret
 }
 
 resource "confluent_kafka_topic" "topic" {
