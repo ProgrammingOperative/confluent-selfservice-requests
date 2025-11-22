@@ -66,6 +66,23 @@ resource "confluent_kafka_topic" "topic" {
     id = var.kafka_id
   }
 }
+
+variable "kafka_id" {
+  description = "The Kafka cluster ID"
+  type        = string
+}
+variable "kafka_rest_endpoint" {
+  description = "The Kafka REST endpoint"
+  type        = string
+}
+variable "confluent_api_key" {
+  description = "Confluent Cloud API Key"
+  type        = string
+}
+variable "confluent_api_secret" {
+  description = "Confluent Cloud API Secret"
+  type        = string
+}
 EOF
 
 echo "🎉 Terraform config generation complete!"
