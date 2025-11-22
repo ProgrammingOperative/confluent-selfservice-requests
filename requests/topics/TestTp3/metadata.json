@@ -1,0 +1,6 @@
+{
+  "resource_type": "topic",
+  "topic_name": "TestTp3",
+  "partitions": 5,
+  "description": ""
+}
