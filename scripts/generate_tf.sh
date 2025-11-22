@@ -12,21 +12,31 @@ if [[ ! -d "$REQUESTS_DIR" ]]; then
   exit 1
 fi
 
-echo "🔍 Locating most recently updated metadata.json..."
+echo "📁 Scanning request folders..."
+TARGET_DIR=""
 
-# Find newest metadata.json file in the topics directory
-LATEST_META=$(find "$REQUESTS_DIR" -type f -name "metadata.json" -printf "%T@ %p\n" \
-    | sort -nr \
-    | head -n 1 \
-    | awk '{print $2}')
+for FOLDER in "$REQUESTS_DIR"/*; do
+  [[ -d "$FOLDER" ]] || continue
 
-if [[ -z "$LATEST_META" ]]; then
-  echo "❌ No metadata.json found!"
+  META="$FOLDER/metadata.json"
+
+  if [[ -f "$META" ]]; then
+    EXPECTED_FOLDER=$(basename "$FOLDER")
+    META_FOLDER=$(jq -r '.folder_name // empty' "$META")
+
+    if [[ "$META_FOLDER" == "$EXPECTED_FOLDER" ]]; then
+      TARGET_DIR="$FOLDER"
+      break
+    fi
+  fi
+done
+
+if [[ -z "$TARGET_DIR" ]]; then
+  echo "❌ No folder contains metadata.folder_name matching its actual name"
   exit 1
 fi
 
-TARGET_DIR=$(dirname "$LATEST_META")
-echo "✅ Using newest request folder: $TARGET_DIR"
+echo "✅ Found matching folder: $TARGET_DIR"
 
 # Extract values using jq
 TOPIC_NAME=$(jq -r '.topic_name' "$LATEST_META")
