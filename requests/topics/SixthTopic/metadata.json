@@ -1,0 +1,7 @@
+{
+  "resource_type": "topic",
+  "topic_name": "SixthTopic",
+  "partitions": 5,
+  "description": "",
+  "pr_number": 77
+}
