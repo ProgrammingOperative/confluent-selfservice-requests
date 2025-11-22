@@ -2,5 +2,6 @@
   "resource_type": "topic",
   "topic_name": "CheckAlpha1",
   "partitions": 6,
-  "description": ""
+  "description": "",
+  "pr_number": 75
 }
