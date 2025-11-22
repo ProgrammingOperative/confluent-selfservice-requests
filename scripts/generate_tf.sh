@@ -2,53 +2,59 @@
 set -euo pipefail
 
 echo "----------------------------------------"
-echo "🔧 Starting Terraform generation script"
+echo "Selecting latest topic request by PR number"
 echo "----------------------------------------"
 
 REQUESTS_DIR="requests/topics"
-TARGET_DIR=""
-
-# Extract PR number from webhook or source reference
-PR_NUMBER=$(echo "${CODEBUILD_WEBHOOK_TRIGGER:-}" | grep -oE '[0-9]+' | head -n 1 || true)
-
-if [[ -z "$PR_NUMBER" ]]; then
-  PR_NUMBER=$(echo "${CODEBUILD_SOURCE_VERSION:-}" | grep -oE '[0-9]+' | head -n 1 || true)
-fi
-
-if [[ -z "$PR_NUMBER" ]]; then
-  echo "❌ Unable to detect PR number from environment!"
-  exit 1
-fi
-
-echo "📝 Pipeline associated with PR number: $PR_NUMBER"
 
 if [[ ! -d "$REQUESTS_DIR" ]]; then
-  echo "❌ Directory '$REQUESTS_DIR' does not exist!"
+  echo "Directory '$REQUESTS_DIR' does not exist!"
   exit 1
 fi
 
-echo "🔍 Searching for metadata.json with pr_number=$PR_NUMBER ..."
+HIGHEST_PR=0
+TARGET_META=""
 
-# Find the metadata.json that belongs to this PR
-META=$(grep -rl "\"pr_number\": $PR_NUMBER" "$REQUESTS_DIR" || true)
+# Iterate through topic request folders
+for FOLDER in "$REQUESTS_DIR"/*; do
+  [[ -d "$FOLDER" ]] || continue
 
-if [[ -z "$META" ]]; then
-  echo "❌ No metadata.json found for PR number: $PR_NUMBER"
+  META="$FOLDER/metadata.json"
+
+  if [[ -f "$META" ]]; then
+    PR_NUM=$(jq -r '.pr_number // 0' "$META")
+
+    if [[ "$PR_NUM" =~ ^[0-9]+$ ]]; then
+      if (( PR_NUM > HIGHEST_PR )); then
+        HIGHEST_PR=$PR_NUM
+        TARGET_META="$META"
+      fi
+    fi
+  fi
+done
+
+if [[ "$HIGHEST_PR" -eq 0 ]]; then
+  echo "No valid pr_number found in any metadata.json!"
   exit 1
 fi
 
-TARGET_DIR=$(dirname "$META")
+echo "Latest PR detected: $HIGHEST_PR"
+echo "Using metadata file: $TARGET_META"
 
-echo "✅ Found matching request folder: $TARGET_DIR"
+# Extract fields
+TOPIC_NAME=$(jq -r '.topic_name' "$TARGET_META")
+PARTITIONS=$(jq -r '.partitions' "$TARGET_META")
+DESCRIPTION=$(jq -r '.description // ""' "$TARGET_META")
 
-# Extract values using jq
-TOPIC_NAME=$(jq -r '.topic_name' "$LATEST_META")
-PARTITIONS=$(jq -r '.partitions' "$LATEST_META")
-DESCRIPTION=$(jq -r '.description' "$LATEST_META")
+echo "Parsed metadata:"
+echo "   • topic_name  = $TOPIC_NAME"
+echo "   • partitions  = $PARTITIONS"
+echo "   • description = $DESCRIPTION"
+
+# Generate Terraform file (always overwrites)
+echo "Writing tf/main.tf"
 
 mkdir -p tf
-
-echo "📝 Generating Terraform file: tf/main.tf"
 
 cat > tf/main.tf <<EOF
 terraform {
