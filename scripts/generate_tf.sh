@@ -6,37 +6,40 @@ echo "🔧 Starting Terraform generation script"
 echo "----------------------------------------"
 
 REQUESTS_DIR="requests/topics"
+TARGET_DIR=""
+
+# Extract PR number from webhook or source reference
+PR_NUMBER=$(echo "${CODEBUILD_WEBHOOK_TRIGGER:-}" | grep -oE '[0-9]+' | head -n 1 || true)
+
+if [[ -z "$PR_NUMBER" ]]; then
+  PR_NUMBER=$(echo "${CODEBUILD_SOURCE_VERSION:-}" | grep -oE '[0-9]+' | head -n 1 || true)
+fi
+
+if [[ -z "$PR_NUMBER" ]]; then
+  echo "❌ Unable to detect PR number from environment!"
+  exit 1
+fi
+
+echo "📝 Pipeline associated with PR number: $PR_NUMBER"
 
 if [[ ! -d "$REQUESTS_DIR" ]]; then
   echo "❌ Directory '$REQUESTS_DIR' does not exist!"
   exit 1
 fi
 
-echo "📁 Scanning request folders..."
-TARGET_DIR=""
+echo "🔍 Searching for metadata.json with pr_number=$PR_NUMBER ..."
 
-for FOLDER in "$REQUESTS_DIR"/*; do
-  [[ -d "$FOLDER" ]] || continue
+# Find the metadata.json that belongs to this PR
+META=$(grep -rl "\"pr_number\": $PR_NUMBER" "$REQUESTS_DIR" || true)
 
-  META="$FOLDER/metadata.json"
-
-  if [[ -f "$META" ]]; then
-    EXPECTED_FOLDER=$(basename "$FOLDER")
-    META_FOLDER=$(jq -r '.folder_name // empty' "$META")
-
-    if [[ "$META_FOLDER" == "$EXPECTED_FOLDER" ]]; then
-      TARGET_DIR="$FOLDER"
-      break
-    fi
-  fi
-done
-
-if [[ -z "$TARGET_DIR" ]]; then
-  echo "❌ No folder contains metadata.folder_name matching its actual name"
+if [[ -z "$META" ]]; then
+  echo "❌ No metadata.json found for PR number: $PR_NUMBER"
   exit 1
 fi
 
-echo "✅ Found matching folder: $TARGET_DIR"
+TARGET_DIR=$(dirname "$META")
+
+echo "✅ Found matching request folder: $TARGET_DIR"
 
 # Extract values using jq
 TOPIC_NAME=$(jq -r '.topic_name' "$LATEST_META")
