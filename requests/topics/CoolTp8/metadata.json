@@ -1,0 +1,6 @@
+{
+  "resource_type": "topic",
+  "topic_name": "CoolTp8",
+  "partitions": 5,
+  "description": ""
+}
