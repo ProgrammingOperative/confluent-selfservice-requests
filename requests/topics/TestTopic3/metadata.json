@@ -2,5 +2,6 @@
   "resource_type": "topic",
   "topic_name": "TestTopic3",
   "partitions": 7,
-  "description": ""
+  "description": "",
+  "pr_number": 76
 }
