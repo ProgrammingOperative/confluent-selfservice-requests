@@ -1,0 +1,7 @@
+{
+  "resource_type": "topic",
+  "topic_name": "NewTopic10",
+  "partitions": 6,
+  "description": "Another Test Topic",
+  "pr_number": 79
+}
