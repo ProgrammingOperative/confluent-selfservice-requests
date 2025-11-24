@@ -1,0 +1,6 @@
+{
+  "resource_type": "topic",
+  "topic_name": "DemoTopic1",
+  "partitions": 6,
+  "description": "Demo topic"
+}
