@@ -1,0 +1,7 @@
+{
+  "resource_type": "topic",
+  "topic_name": "demo4",
+  "partitions": 4,
+  "description": "",
+  "pr_number": 81
+}
