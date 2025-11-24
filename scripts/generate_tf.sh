@@ -104,5 +104,5 @@ variable "confluent_api_secret" {
 }
 EOF
 
-echo "🎉 Terraform config generation complete!"
+echo "Terraform config generation complete!"
 echo "----------------------------------------"
