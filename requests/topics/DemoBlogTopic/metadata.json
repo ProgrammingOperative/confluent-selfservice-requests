@@ -2,5 +2,6 @@
   "resource_type": "topic",
   "topic_name": "DemoBlogTopic",
   "partitions": 7,
-  "description": "Demo Topic"
+  "description": "Demo Topic",
+  "pr_number": 83
 }
