@@ -1,0 +1,7 @@
+{
+  "resource_type": "topic",
+  "topic_name": "Check3221",
+  "partitions": 5,
+  "description": "",
+  "pr_number": 85
+}
